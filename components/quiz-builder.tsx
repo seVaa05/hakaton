@@ -1,10 +1,9 @@
 'use client';
-import { useEffect,useState } from 'react'; import { ArrowLeft, ArrowRight, Check, CheckCircle2, ClipboardList, RotateCcw, XCircle } from 'lucide-react'; import type { ExamQuestion,Subject } from '@/lib/data';
+import { useState } from 'react'; import { ArrowLeft, ArrowRight, Check, CheckCircle2, ClipboardList, RotateCcw, XCircle } from 'lucide-react'; import type { ExamQuestion,Subject } from '@/lib/data';
 type Answer=string|number;
 export function QuizBuilder({initialQuestions,subjects,initialSubject}:{initialQuestions:ExamQuestion[];subjects:Subject[];initialSubject:string}){
- const [added,setAdded]=useState<ExamQuestion[]>([]),[subject,setSubject]=useState(initialSubject),[count,setCount]=useState(5),[quiz,setQuiz]=useState<ExamQuestion[]>([]),[answers,setAnswers]=useState<Record<string,Answer>>({}),[reviewed,setReviewed]=useState<Record<string,boolean>>({}),[phase,setPhase]=useState<'setup'|'quiz'|'results'>('setup'),[current,setCurrent]=useState(0);
- useEffect(()=>{try{setAdded(JSON.parse(localStorage.getItem('studyspace-questions')??'[]'))}catch{}},[]);
- const available=[...initialQuestions,...added].filter(q=>q.subjectId===subject),max=available.length;
+ const [subject,setSubject]=useState(initialSubject),[count,setCount]=useState(5),[quiz,setQuiz]=useState<ExamQuestion[]>([]),[answers,setAnswers]=useState<Record<string,Answer>>({}),[reviewed,setReviewed]=useState<Record<string,boolean>>({}),[phase,setPhase]=useState<'setup'|'quiz'|'results'>('setup'),[current,setCurrent]=useState(0);
+ const available=initialQuestions.filter(q=>q.subjectId===subject),max=available.length;
  function generate(){if(!max)return;const shuffled=[...available];for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]}setQuiz(shuffled.slice(0,Math.min(count,max)));setAnswers({});setReviewed({});setCurrent(0);setPhase('quiz')}
  const q=quiz[current],mc=quiz.filter(q=>q.type==='multiple-choice'),open=quiz.filter(q=>q.type==='open-ended'),correctMc=mc.filter(q=>answers[q.id]===q.correctAnswer).length,correctOpen=open.filter(q=>reviewed[q.id]).length;
  return <div className="max-w-3xl mx-auto mt-10">

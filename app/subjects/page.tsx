@@ -1,2 +1,12 @@
-import { getSubjects, materials, questions } from '@/lib/data'; import { SubjectsBrowser } from '@/components/subjects-browser';
-export default async function SubjectsPage({searchParams}:{searchParams:Promise<{search?:string}>}){const [subjects,params]=await Promise.all([getSubjects(),searchParams]);return <main className="container pt-12"><div className="eyebrow">VAŠ PUT KROZ STUDIJE</div><h1 className="heading mt-2">Istražite predmete</h1><p className="muted mt-3">Pronađite predmete, materijale i pitanja za vežbanje na jednom mestu.</p><SubjectsBrowser subjects={subjects} materials={materials} questions={questions} initialSearch={params.search??''}/></main>}
+import { getSubjects } from '@/lib/data';
+import { SubjectsBrowser } from '@/components/subjects-browser';
+
+export default async function SubjectsPage({ searchParams }: { searchParams: Promise<{ search?: string }> }) {
+  const [subjects, params] = await Promise.all([getSubjects(), searchParams]);
+  return <main className="container pt-12">
+    <div className="eyebrow">VAŠ PUT KROZ STUDIJE</div>
+    <h1 className="heading mt-2">Istražite predmete</h1>
+    <p className="muted mt-3">Pronađite predmete, materijale i pitanja za vežbanje na jednom mestu.</p>
+    <SubjectsBrowser subjects={subjects} initialSearch={params.search ?? ''} />
+  </main>;
+}

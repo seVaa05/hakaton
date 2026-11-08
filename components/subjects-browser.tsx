@@ -1,2 +1,37 @@
-'use client'; import { useState } from 'react'; import { Search } from 'lucide-react'; import { SubjectCard } from './subject-card'; import type { Subject,Material,ExamQuestion } from '@/lib/data';
-export function SubjectsBrowser({subjects,materials,questions,initialSearch}:{subjects:Subject[];materials:Material[];questions:ExamQuestion[];initialSearch:string}){const [year,setYear]=useState(0);const [search,setSearch]=useState(initialSearch);const filtered=subjects.filter(s=>(!year||s.year===year)&&(`${s.name} ${s.code} ${s.category}`.toLowerCase().includes(search.toLowerCase())));return <><div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mt-9"><div className="flex flex-wrap gap-2">{[0,1,2,3,4].map(y=><button key={y} onClick={()=>setYear(y)} className={`pill ${year===y?'active':''}`}>{y===0?'Sve godine':`${y}. godina`}</button>)}</div><div className="relative w-full sm:w-72"><Search size={17} className="absolute left-3 top-3.5 text-[#8ca29f]"/><input className="field pl-10" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Pretraži predmete..."/></div></div><div className="mt-5 mb-5 text-sm muted">Pronađeno predmeta: {filtered.length}</div><div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">{filtered.map(s=><SubjectCard key={s.id} subject={s} materials={materials.filter(m=>m.subjectId===s.id).length} questions={questions.filter(q=>q.subjectId===s.id).length}/>)}</div>{filtered.length===0&&<div className="card text-center py-16 muted">Nema pronađenih predmeta. Pokušajte drugu pretragu.</div>}</>}
+'use client';
+import { useState } from 'react';
+import { Search } from 'lucide-react';
+import { SubjectCard } from './subject-card';
+import type { Subject } from '@/lib/data';
+
+export function SubjectsBrowser({ subjects, initialSearch }: { subjects: Subject[]; initialSearch: string }) {
+  const [year, setYear] = useState(0);
+  const [search, setSearch] = useState(initialSearch);
+  const filtered = subjects.filter(subject =>
+    (!year || subject.year === year) &&
+    subject.name.toLocaleLowerCase('sr').includes(search.trim().toLocaleLowerCase('sr'))
+  );
+
+  return <>
+    <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mt-9">
+      <div className="flex flex-wrap gap-2">
+        {[0, 1, 2, 3, 4].map(value =>
+          <button key={value} onClick={() => setYear(value)} className={`pill ${year === value ? 'active' : ''}`}>
+            {value === 0 ? 'Sve godine' : `${value}. godina`}
+          </button>
+        )}
+      </div>
+      <div className="relative w-full sm:w-72">
+        <Search size={17} className="absolute left-3 top-3.5 text-[#8ca29f]" />
+        <input className="field pl-10" value={search} onChange={event => setSearch(event.target.value)} placeholder="Pretraži predmete..." />
+      </div>
+    </div>
+    <div className="mt-5 mb-5 text-sm muted">Pronađeno predmeta: {filtered.length}</div>
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      {filtered.map(subject => <SubjectCard key={subject.id} subject={subject} />)}
+    </div>
+    {filtered.length === 0 && <div className="card text-center py-16 muted">
+      {subjects.length === 0 ? 'Trenutno nema dostupnih predmeta.' : 'Nema pronađenih predmeta. Pokušajte drugu pretragu.'}
+    </div>}
+  </>;
+}

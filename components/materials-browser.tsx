@@ -1,14 +1,64 @@
 'use client';
-import { useEffect, useState } from 'react'; import { ArrowUpRight, FileText, Heart, Plus, Search, Star, X } from 'lucide-react'; import type { Material,Subject } from '@/lib/data';
-type Review={materialId:string;rating:number;comment:string};
-const read=<T,>(key:string,fallback:T):T=>{try{return JSON.parse(localStorage.getItem(key)??'null')??fallback}catch{return fallback}};
-export function MaterialsBrowser({initialMaterials,subjects,initialSubject}:{initialMaterials:Material[];subjects:Subject[];initialSubject:string}){
- const [added,setAdded]=useState<Material[]>([]),[liked,setLiked]=useState<string[]>([]),[reviews,setReviews]=useState<Review[]>([]),[subject,setSubject]=useState(initialSubject),[sort,setSort]=useState('popular'),[search,setSearch]=useState(''),[uploadOpen,setUploadOpen]=useState(false),[uploadError,setUploadError]=useState(''),[fileName,setFileName]=useState(''),[reviewId,setReviewId]=useState(''),[rating,setRating]=useState(5),[comment,setComment]=useState('');
- useEffect(()=>{setAdded(read('studyspace-materials',[]));setLiked(read('studyspace-likes',[]));setReviews(read('studyspace-reviews',[]))},[]);
- const all=[...added,...initialMaterials]; const visible=all.filter(m=>(!subject||m.subjectId===subject)&&(`${m.title} ${m.description}`.toLowerCase().includes(search.toLowerCase()))).sort((a,b)=>sort==='popular'?(b.likes+Number(liked.includes(b.id)))-(a.likes+Number(liked.includes(a.id))):sort==='rating'?b.rating-a.rating:b.id.localeCompare(a.id));
- function like(id:string){const next=liked.includes(id)?liked.filter(x=>x!==id):[...liked,id];setLiked(next);localStorage.setItem('studyspace-likes',JSON.stringify(next))}
- async function upload(e:React.FormEvent<HTMLFormElement>){e.preventDefault();setUploadError('');const form=new FormData(e.currentTarget);const title=String(form.get('title')??'').trim(),description=String(form.get('description')??'').trim(),subjectId=String(form.get('subject')??''),file=form.get('file') as File|null;let url=String(form.get('url')??'').trim(),type=String(form.get('type')??'Link');if(file?.size){if(file.size>1_000_000){setUploadError('Izaberite datoteku manju od 1 MB.');return}url=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('Datoteka nije mogla da se pročita'));reader.readAsDataURL(file)});type=file.name.split('.').pop()?.toUpperCase()||type}if(!title||!description||!subjectId||!url){setUploadError('Dodajte datoteku ili adresu materijala.');return}const item:Material={id:crypto.randomUUID(),title,description,subjectId,url,type,author:'Vi',date:new Date().toLocaleDateString('sr-RS'),likes:0,rating:0,reviews:0};const next=[item,...added];try{localStorage.setItem('studyspace-materials',JSON.stringify(next));setAdded(next);setUploadOpen(false);setFileName('');setSubject('')}catch{setUploadError('Memorija pregledača je puna. Izaberite manju datoteku ili unesite link.')}}
- function addReview(e:React.FormEvent){e.preventDefault();if(!reviewId)return;const next=[...reviews,{materialId:reviewId,rating,comment:comment.trim()}];setReviews(next);localStorage.setItem('studyspace-reviews',JSON.stringify(next));setReviewId('');setComment('');setRating(5)}
- return <><div className="flex flex-col md:flex-row gap-3 md:items-center justify-between mt-9"><div className="flex flex-col sm:flex-row gap-3 flex-1"><div className="relative sm:max-w-sm flex-1"><Search size={17} className="absolute left-3 top-3.5 text-[#8ca29f]"/><input className="field pl-10" placeholder="Pretraži materijale..." value={search} onChange={e=>setSearch(e.target.value)}/></div><select aria-label="Filtriraj po predmetu" className="field sm:w-52" value={subject} onChange={e=>setSubject(e.target.value)}><option value="">Svi predmeti</option>{subjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select><select aria-label="Sortiraj materijale" className="field sm:w-44" value={sort} onChange={e=>setSort(e.target.value)}><option value="popular">Najpopularnije</option><option value="rating">Najbolje ocenjeni</option><option value="newest">Najnovije</option></select></div><button className="btn btn-primary" onClick={()=>setUploadOpen(true)}><Plus size={17}/> Dodaj materijal</button></div><p className="muted text-sm mt-5 mb-5">Pronađeno materijala: {visible.length}</p><div className="grid md:grid-cols-2 gap-5">{visible.map(m=>{const ownReviews=reviews.filter(r=>r.materialId===m.id),average=ownReviews.length?(m.rating*m.reviews+ownReviews.reduce((n,r)=>n+r.rating,0))/(m.reviews+ownReviews.length):m.rating;return <article key={m.id} className="card p-6"><div className="flex justify-between items-start gap-3"><div className="icon-box blue"><FileText size={23}/></div><span className="tag tag-blue">{m.type==='Notes'?'Beleške':m.type==='Slides'?'Prezentacija':m.type==='Link'?'Veb veza':m.type}</span></div><div className="text-xs font-bold text-[#78908b] mt-5">{subjects.find(s=>s.id===m.subjectId)?.name??'Predmet'}</div><h2 className="text-lg font-bold mt-1">{m.title}</h2><p className="muted text-sm mt-2 min-h-10">{m.description}</p><div className="flex items-center gap-4 mt-5 text-xs muted"><span>Autor: {m.author}</span><span>{m.date}</span></div><div className="border-t border-[#edf1ef] mt-5 pt-4 flex items-center justify-between gap-2"><div className="flex items-center gap-4"><button aria-label={liked.includes(m.id)?'Ukloni sviđanje':'Sviđa mi se'} onClick={()=>like(m.id)} className={`flex items-center gap-1.5 text-sm font-semibold ${liked.includes(m.id)?'text-rose-500':'text-[#79918d]'}`}><Heart size={17} fill={liked.includes(m.id)?'currentColor':'none'}/>{m.likes+Number(liked.includes(m.id))}</button><button onClick={()=>setReviewId(m.id)} className="flex items-center gap-1.5 text-sm font-semibold text-[#79918d]"><Star size={17} className="text-[#e5a748]" fill="#e5a748"/>{average?average.toFixed(1):'Novo'} <span className="text-xs">({m.reviews+ownReviews.length})</span></button></div><a href={m.url} target="_blank" rel="noopener noreferrer" className="text-[#007c72] font-bold text-sm flex items-center gap-1">Otvori <ArrowUpRight size={16}/></a></div></article>})}</div>{visible.length===0&&<div className="card text-center py-16 muted">Nema pronađenih materijala. Promenite filter ili dodajte materijal.</div>}
- {uploadOpen&&<div className="fixed inset-0 z-[60] bg-[#103c39]/45 p-4 grid place-items-center" onMouseDown={e=>{if(e.target===e.currentTarget)setUploadOpen(false)}}><div className="card w-full max-w-lg p-7 max-h-[90vh] overflow-auto"><div className="flex justify-between items-center"><h2 className="subheading">Dodaj materijal</h2><button aria-label="Zatvori" onClick={()=>setUploadOpen(false)}><X size={20}/></button></div><p className="muted text-sm mt-2 mb-6">Podelite koristan materijal sa drugim studentima.</p><form onSubmit={upload} className="space-y-4"><div><label className="label" htmlFor="m-title">Naslov</label><input id="m-title" name="title" required className="field" placeholder="npr. Vodič za prvo poglavlje"/></div><div><label className="label" htmlFor="m-description">Opis</label><textarea id="m-description" name="description" required rows={3} className="field" placeholder="Šta ovaj materijal obuhvata?"/></div><div className="grid sm:grid-cols-2 gap-4"><div><label className="label" htmlFor="m-subject">Predmet</label><select id="m-subject" name="subject" required className="field" defaultValue=""><option value="" disabled>Izaberite predmet</option>{subjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div><div><label className="label" htmlFor="m-type">Tip</label><select id="m-type" name="type" className="field"><option>PDF</option><option value="Notes">Beleške</option><option value="Slides">Prezentacija</option><option value="Link">Veb veza</option></select></div></div><div><label className="label" htmlFor="m-file">Dodajte datoteku (do 1 MB)</label><input id="m-file" name="file" type="file" accept=".pdf,.txt,.doc,.docx,.ppt,.pptx" className="sr-only" onChange={e=>setFileName(e.target.files?.[0]?.name??'')}/><label htmlFor="m-file" className="field block cursor-pointer">{fileName||'Izaberite datoteku'}</label></div><div><label className="label" htmlFor="m-url">Ili adresa materijala</label><input id="m-url" name="url" type="url" className="field" placeholder="https://..."/></div>{uploadError&&<p role="alert" className="text-sm text-red-600">{uploadError}</p>}<button className="btn btn-primary w-full">Podeli materijal</button></form></div></div>}
- {reviewId&&<div className="fixed inset-0 z-[60] bg-[#103c39]/45 p-4 grid place-items-center" onMouseDown={e=>{if(e.target===e.currentTarget)setReviewId('')}}><div className="card w-full max-w-md p-7 max-h-[90vh] overflow-auto"><div className="flex justify-between"><h2 className="subheading">Recenzije</h2><button aria-label="Zatvori" onClick={()=>setReviewId('')}><X size={20}/></button></div><div className="mt-5 space-y-3">{reviews.filter(r=>r.materialId===reviewId).map((r,i)=><div key={i} className="bg-[#f4f9f6] rounded-lg p-3"><span className="text-[#d99c38] text-sm">{'★'.repeat(r.rating)}</span><p className="text-sm mt-1">{r.comment}</p></div>)}{reviews.filter(r=>r.materialId===reviewId).length===0&&<p className="muted text-sm">Još nema napisanih recenzija u ovom pregledaču.</p>}</div><form onSubmit={addReview} className="mt-6 space-y-4 border-t border-[#e3eeea] pt-5"><h3 className="font-bold">Napišite recenziju</h3><div><label className="label">Vaša ocena</label><div className="flex gap-2">{[1,2,3,4,5].map(n=><button type="button" aria-label={`Oceni sa ${n} zvezdica`} key={n} onClick={()=>setRating(n)}><Star size={26} className={n<=rating?'text-[#e5a748]':'text-[#c6d4cf]'} fill={n<=rating?'currentColor':'none'}/></button>)}</div></div><div><label className="label" htmlFor="review-text">Recenzija</label><textarea id="review-text" className="field" rows={3} value={comment} onChange={e=>setComment(e.target.value)} placeholder="Kako vam je ovaj materijal pomogao?" required/></div><button className="btn btn-primary w-full">Pošalji recenziju</button></form></div></div>}</>}
+
+import { useState } from 'react';
+import { Search } from 'lucide-react';
+import { MaterialCard } from './material-card';
+import type { Material, Subject } from '@/lib/data';
+
+type SortOrder = 'newest' | 'oldest' | 'title';
+
+export function MaterialsBrowser({
+  initialMaterials,
+  subjects,
+  initialSubject,
+}: {
+  initialMaterials: Material[];
+  subjects: Subject[];
+  initialSubject: string;
+}) {
+  const [subject, setSubject] = useState(initialSubject);
+  const [sort, setSort] = useState<SortOrder>('newest');
+  const [search, setSearch] = useState('');
+  const query = search.trim().toLocaleLowerCase('sr');
+  const subjectNames = new Map(subjects.map(item => [item.id, item.name]));
+
+  const visible = initialMaterials
+    .filter(material =>
+      (!subject || material.subjectId === subject) &&
+      (`${material.title} ${material.description ?? ''}`.toLocaleLowerCase('sr').includes(query))
+    )
+    .sort((a, b) => sort === 'title'
+      ? a.title.localeCompare(b.title, 'sr')
+      : sort === 'oldest'
+        ? a.createdAt.localeCompare(b.createdAt)
+        : b.createdAt.localeCompare(a.createdAt));
+
+  return <>
+    <div className="flex flex-col md:flex-row gap-3 md:items-center mt-9">
+      <div className="relative flex-1">
+        <Search size={17} className="absolute left-3 top-3.5 text-[#8ca29f]" />
+        <input className="field pl-10" placeholder="Pretraži materijale..." value={search} onChange={event => setSearch(event.target.value)} />
+      </div>
+      <select aria-label="Filtriraj po predmetu" className="field md:w-56" value={subject} onChange={event => setSubject(event.target.value)}>
+        <option value="">Svi predmeti</option>
+        {subjects.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+      </select>
+      <select aria-label="Sortiraj materijale" className="field md:w-44" value={sort} onChange={event => setSort(event.target.value as SortOrder)}>
+        <option value="newest">Najnovije</option>
+        <option value="oldest">Najstarije</option>
+        <option value="title">Po nazivu</option>
+      </select>
+    </div>
+    <p className="muted text-sm mt-5 mb-5">Pronađeno materijala: {visible.length}</p>
+    <div className="grid md:grid-cols-2 gap-5">
+      {visible.map(material =>
+        <MaterialCard key={material.id} material={material} subjectName={subjectNames.get(material.subjectId)} />
+      )}
+    </div>
+    {visible.length === 0 && <div className="card text-center py-16 muted">
+      {initialMaterials.length === 0
+        ? 'Trenutno nema dostupnih materijala.'
+        : 'Nema materijala za izabrane kriterijume.'}
+    </div>}
+  </>;
+}
